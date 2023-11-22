@@ -1,0 +1,43 @@
+name: Deploy AzureResourceManager by MDP
+branding:
+  icon: truck
+  color: red
+author: Clark159
+description: GitHub Action for Deploy AzureResourceManager
+
+
+inputs:     
+  resourceGroupName:
+    description: ResourceGroup Name
+    required: true    
+
+  template: 
+    description: ResourceManager Template
+    required: false
+    default: './.github/workflows/${{ github.workflow }}.bicep'
+ 
+  parameters:
+    description: ResourceManager Parameters
+    required: true
+
+
+runs:
+  using: composite
+  steps:
+
+    - name: Copy TemplateFile
+      shell: bash
+      run: |-
+        cp ${{ inputs.template }} ${{ github.action_path }} 
+        echo "templatePath=${{ github.action_path }}/$(basename ${{ inputs.template }})" >> $GITHUB_OUTPUT
+      id: template-file-copy
+
+    - name: Deploy ResourceManager
+      uses: azure/arm-deploy@v1
+      with:        
+        deploymentName: ${{ github.workflow }}-(azure-resource-manager-deploy)-${{ github.run_number }}
+        resourceGroupName: ${{ inputs.resourceGroupName }}
+        template: ${{ steps.template-file-copy.outputs.templatePath }}
+        parameters: ${{ inputs.parameters }}
+        failOnStdErr: false
+      id: resource-manager-deploy
